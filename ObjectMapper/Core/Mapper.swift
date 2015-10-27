@@ -13,6 +13,10 @@ public protocol Mappable {
 	mutating func mapping(map: Map)
 }
 
+public protocol MappableCluster: Mappable {
+    static func classForMapping(map: Map) -> Mappable.Type?
+}
+
 public enum MappingType {
 	case FromJSON
 	case ToJSON
@@ -88,7 +92,15 @@ public final class Mapper<N: Mappable> {
 	public func map(JSONDictionary: [String : AnyObject]) -> N? {
 		let map = Map(mappingType: .FromJSON, JSONDictionary: JSONDictionary)
 		
-		if var object = N.newInstance(map) as? N {
+        let klass: Mappable.Type?
+        
+        if let clusterClass = N.self as? MappableCluster.Type {
+            klass = clusterClass.classForMapping(map)
+        } else {
+            klass = N.self
+        }
+        
+		if var object = klass?.newInstance(map) as? N {
 			object.mapping(map)
 			return object
 		}
